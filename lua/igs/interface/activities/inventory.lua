@@ -13,10 +13,99 @@ local function loadTab(activity,sidebar,dat)
 	end
 
 	local content_w = activity:GetContentWide()
-	
-	-- Если инвентарь пустой, показываем красивое сообщение
-	if #dat == 0 then
-		local emptyPanel = uigs.Create("Panel", function(p)
+
+	-- Создаем скролл панель для карточек
+	local scr = uigs.Create("igs_scroll", bg)
+	scr:SetSize(content_w, activity:GetTall())
+	scr:SetPos(0, 0)
+	scr:SetSpacing(10)
+	scr:SetPadding(10)
+
+	-- Создаем layout для карточек
+	local icons = uigs.Create("DIconLayout", function(p)
+		p:SetWide(content_w - 20)
+		p:SetSpaceX(10)
+		p:SetSpaceY(10)
+		p.Paint = function() end
+	end, scr)
+	scr:AddItem(icons)
+
+	local emptyPanel
+
+	local function removeFromCanvas(itemPan)
+		if IsValid(itemPan) then
+			itemPan:Remove()
+		end
+	end
+
+	function icons:AddItem(ITEM, dbID)
+		local item = icons:Add("igs_item")
+		item:SetSize(140, 170) -- Стандартный размер карточки как в услугах
+		item:HidePrice(true) -- Скрываем цену в инвентаре
+		item:SetIcon(ITEM:ICON())
+		item:SetName(ITEM:Name())
+		-- Убрана надпись "Срок" - карточка показывает только название
+		
+		-- При клике открываем меню действий
+		item.DoClick = function()
+			-- Создаем красивое модальное окно вместо обычного меню
+			local frame = uigs.Create("igs_frame", function(f)
+				f:SetSize(300, 200)
+				f:Center()
+				f:MakePopup()
+				f:SetTitle(ITEM:Name())
+			end)
+			
+			local y = frame:GetTitleHeight() + 10
+			
+			-- Кнопка активации
+			local activateBtn = uigs.Create("igs_button", function(btn)
+				btn:SetPos(10, y)
+				btn:SetSize(frame:GetWide() - 20, 35)
+				btn:SetText("✓ Активировать")
+				btn:SetActive(true)
+				btn.DoClick = function()
+					frame:Close()
+					IGS.ProcessActivate(dbID, function(ok)
+						if !ok then return end
+						removeFromCanvas(item)
+					end)
+				end
+			end, frame)
+			
+			y = y + 40
+			
+			-- Кнопка информации
+			local infoBtn = uigs.Create("igs_button", function(btn)
+				btn:SetPos(10, y)
+				btn:SetSize(frame:GetWide() - 20, 35)
+				btn:SetText("ℹ Информация")
+				btn.DoClick = function()
+					frame:Close()
+					IGS.WIN.Item(ITEM:UID())
+				end
+			end, frame)
+			
+			y = y + 40
+			
+			-- Кнопка отмены
+			local cancelBtn = uigs.Create("igs_button", function(btn)
+				btn:SetPos(10, y)
+				btn:SetSize(frame:GetWide() - 20, 35)
+				btn:SetText("✖ Отмена")
+				btn.DoClick = function()
+					frame:Close()
+				end
+			end, frame)
+			
+			y = y + 45
+			frame:SetTall(y)
+		end
+	end
+
+	local function showEmptyState()
+		if IsValid(emptyPanel) then return end
+		emptyPanel = uigs.Create("Panel", function(p)
 			p:SetSize(content_w - 40, 200)
 			p:SetPos(20, (activity:GetTall() - 200) / 2)
 			
@@ -55,105 +144,31 @@ local function loadTab(activity,sidebar,dat)
 			desc:SetAutoStretchVertical(true)
 			desc:SetContentAlignment(5)
 		end, bg)
+	end
+
+	local function hideEmptyState()
+		if IsValid(emptyPanel) then
+			emptyPanel:Remove()
+			emptyPanel = nil
+		end
+	end
+
+	if #dat == 0 then
+		showEmptyState()
 	else
-		-- Создаем скролл панель для карточек
-		local scr = uigs.Create("igs_scroll", bg)
-		scr:SetSize(content_w, activity:GetTall())
-		scr:SetPos(0, 0)
-		scr:SetSpacing(10)
-		scr:SetPadding(10)
-
-		-- Создаем layout для карточек
-		scr:AddItem(uigs.Create("DIconLayout", function(icons)
-		icons:SetWide(content_w - 20)
-		icons:SetSpaceX(10)
-		icons:SetSpaceY(10)
-		icons.Paint = function() end
-
-		local function removeFromCanvas(itemPan)
-			if IsValid(itemPan) then
-				itemPan:Remove()
-			end
-		end
-
-		function icons:AddItem(ITEM, dbID)
-			local item = icons:Add("igs_item")
-			item:SetSize(140, 170) -- Стандартный размер карточки как в услугах
-			item:HidePrice(true) -- Скрываем цену в инвентаре
-			item:SetIcon(ITEM:ICON())
-			item:SetName(ITEM:Name())
-			-- Убрана надпись "Срок" - карточка показывает только название
-			
-			-- При клике открываем меню действий
-			item.DoClick = function()
-				-- Создаем красивое модальное окно вместо обычного меню
-				local frame = uigs.Create("igs_frame", function(f)
-					f:SetSize(300, 200)
-					f:Center()
-					f:MakePopup()
-					f:SetTitle(ITEM:Name())
-				end)
-				
-				local y = frame:GetTitleHeight() + 10
-				
-				-- Кнопка активации
-				local activateBtn = uigs.Create("igs_button", function(btn)
-					btn:SetPos(10, y)
-					btn:SetSize(frame:GetWide() - 20, 35)
-					btn:SetText("✓ Активировать")
-					btn:SetActive(true)
-					btn.DoClick = function()
-						frame:Close()
-						IGS.ProcessActivate(dbID, function(ok)
-							if !ok then return end
-							removeFromCanvas(item)
-						end)
-					end
-				end, frame)
-				
-				y = y + 40
-				
-				-- Кнопка информации
-				local infoBtn = uigs.Create("igs_button", function(btn)
-					btn:SetPos(10, y)
-					btn:SetSize(frame:GetWide() - 20, 35)
-					btn:SetText("ℹ Информация")
-					btn.DoClick = function()
-						frame:Close()
-						IGS.WIN.Item(ITEM:UID())
-					end
-				end, frame)
-				
-				y = y + 40
-				
-				-- Кнопка отмены
-				local cancelBtn = uigs.Create("igs_button", function(btn)
-					btn:SetPos(10, y)
-					btn:SetSize(frame:GetWide() - 20, 35)
-					btn:SetText("✖ Отмена")
-					btn.DoClick = function()
-						frame:Close()
-					end
-				end, frame)
-				
-				y = y + 45
-				frame:SetTall(y)
-			end
-		end
-
 		for _, v in ipairs(dat) do
 			-- Добавляем только валидные предметы (null предметы уже очищены на сервере)
 			icons:AddItem(v.item, v.id)
 		end
-
-			hook.Add("IGS.PlayerPurchasedItem", "UpdateInventoryView", function(_, ITEM, invDbID)
-				-- Не добавляем null предметы в UI
-				if not ITEM.isnull then
-					icons:AddItem(ITEM, invDbID)
-				end
-			end)
-		end))
 	end
+
+	hook.Add("IGS.PlayerPurchasedItem", "UpdateInventoryView", function(_, ITEM, invDbID)
+		-- Не добавляем null предметы в UI
+		if not ITEM.isnull then
+			hideEmptyState()
+			icons:AddItem(ITEM, invDbID)
+		end
+	end)
 
 	activity:AddTab("Инвентарь", bg, "materials/icons/fa32/cart-arrow-down.png")
 end
