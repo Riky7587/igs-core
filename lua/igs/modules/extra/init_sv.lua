@@ -155,9 +155,24 @@ timer.Simple(1, function() -- http.Fetch
 			print("IGS Найдено новое soft обновление. Текущая версия, новая:", current_tag, freshest_suitable)
 			local url = "https://github.com/" .. IGS_REPO .. "/releases/download/" .. freshest_suitable .. "/superfile.json"
 			http.Fetch(url, function(superfile)
-				print("IGS Обновление загружено. Перезагрузите сервер для применения")
 				file.Write("igs/superfile.txt", superfile)
 				cookie.Set("igs_version", freshest_suitable)
+
+				print("IGS Найдено обновление и оно будет применено автоматически: " .. freshest_suitable)
+				IGS.NotifyAll("IGS: найдено обновление " .. freshest_suitable .. ". Применяем автоматически...")
+
+				-- Автоматически применяем обновление без перезапуска
+				local mount = util.JSONToTable(superfile)
+				local path = "autorun/l_ingameshop.lua"
+				if mount and mount[path] then
+					IGS_MOUNT = mount
+					RunString(mount[path], path)
+					print("IGS Обновление применено автоматически")
+					IGS.NotifyAll("IGS: обновление установлено")
+				else
+					print("IGS Не удалось применить обновление автоматически (superfile битый). Требуется перезапуск.")
+					IGS.NotifyAll("IGS: обновление загружено, требуется перезапуск")
+				end
 			end, error)
 		else
 			print("IGS  Soft обновлений нет")
