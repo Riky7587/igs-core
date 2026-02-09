@@ -8,6 +8,22 @@ local function getGroupImmunity(group)
 	return g and g.immunity
 end
 
+local function setGroupWithCAMI(pl, newGroup)
+	if not IsValid(pl) then return end
+	if not FAdmin or not FAdmin.Access or not FAdmin.Access.Groups then return end
+	if not FAdmin.Access.Groups[newGroup] then return end
+
+	local oldGroup = pl:GetUserGroup()
+	if oldGroup == newGroup then return end
+
+	FAdmin.Access.PlayerSetGroup(pl, newGroup)
+
+	-- Сохраняем в FAdmin_PlayerGroup (через CAMI хук), чтобы переживало перезаход
+	if CAMI and CAMI.SignalUserGroupChanged then
+		CAMI.SignalUserGroupChanged(pl, oldGroup, newGroup, "IGS")
+	end
+end
+
 function STORE_ITEM:SetFAdminGroup(sGroup, iWeight)
 	return self:SetInstaller(function(pl)
 		-- Не понижаем привилегии: если текущая выше или равна, пропускаем
@@ -19,7 +35,7 @@ function STORE_ITEM:SetFAdminGroup(sGroup, iWeight)
 			return
 		end
 
-		FAdmin.Access.PlayerSetGroup(pl, sGroup)
+		setGroupWithCAMI(pl, sGroup)
 		pl.IGSFAdminWeight = iWeight
 	end):SetValidator(function(pl)
 		-- Если уже в нужной группе — ок
