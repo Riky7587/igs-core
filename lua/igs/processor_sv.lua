@@ -121,6 +121,10 @@ end
 -- Восстановление слетевших прав
 hook.Add("IGS.PlayerPurchasesLoaded","RestorePex",function(pl,purchases)
 	if purchases then
+		-- Возвращаем максимальную купленную привилегию (по иммунитету)
+		if IGS.ApplyBestFAdminGroup then
+			IGS.ApplyBestFAdminGroup(pl, purchases)
+		end
 		repairBrokenPurchases(pl, purchases)
 	end
 end)

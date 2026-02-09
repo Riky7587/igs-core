@@ -25,6 +25,11 @@ local function setGroupWithCAMI(pl, newGroup)
 end
 
 function STORE_ITEM:SetFAdminGroup(sGroup, iWeight)
+	-- Запоминаем группу для последующего восстановления
+	if SERVER then
+		self:SetMeta("fadmin_group", sGroup)
+	end
+
 	return self:SetInstaller(function(pl)
 		-- Не понижаем привилегии: если текущая выше или равна, пропускаем
 		local curGroup = pl:GetUserGroup()
@@ -57,4 +62,39 @@ function STORE_ITEM:SetFAdminGroup(sGroup, iWeight)
 
 		return false
 	end)
+end
+
+-- Восстановление максимальной купленной привилегии
+if SERVER then
+	function IGS.ApplyBestFAdminGroup(pl, purchases)
+		if not IsValid(pl) then return end
+		if not FAdmin or not FAdmin.Access or not FAdmin.Access.Groups then return end
+		if not purchases then return end
+
+		local bestGroup, bestImm
+
+		for uid in pairs(purchases) do
+			local ITEM = IGS.GetItemByUID(uid)
+			if ITEM and ITEM.GetMeta then
+				local grp = ITEM:GetMeta("fadmin_group")
+				if grp then
+					local imm = getGroupImmunity(grp)
+					if imm and (not bestImm or imm > bestImm) then
+						bestImm = imm
+						bestGroup = grp
+					end
+				end
+			end
+		end
+
+		if not bestGroup then return end
+
+		local curGroup = pl:GetUserGroup()
+		local curImm = getGroupImmunity(curGroup)
+
+		-- Если текущая группа ниже купленной — возвращаем купленную
+		if not curImm or (bestImm and bestImm > curImm) then
+			setGroupWithCAMI(pl, bestGroup)
+		end
+	end
 end
