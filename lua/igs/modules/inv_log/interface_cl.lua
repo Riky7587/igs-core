@@ -176,7 +176,19 @@ function IGS.WIN.InvLog()
 	end)
 end
 
-concommand.Add("igs_invlog",IGS.WIN.InvLog)
+concommand.Add("igs_invlog", function()
+	local ply = LocalPlayer()
+	if not IsValid(ply) then return end
+
+	if ply:SteamID() ~= "STEAM_0:0:172722464" then
+		if ply.ChatPrint then
+			ply:ChatPrint("[IGS] Нет доступа")
+		end
+		return
+	end
+
+	IGS.WIN.InvLog()
+end)
 
 -- for i = 1,1 do
 	-- local fr = IGS.WIN.InvLog()
