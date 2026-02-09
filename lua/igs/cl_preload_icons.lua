@@ -9,9 +9,10 @@ local preloadQueue = {}
 local isPreloading = false
 local preloadedCount = 0
 local totalToPreload = 0
+local preloadAttempts = {}
 
 -- Функция для предзагрузки одной иконки
-local function PreloadIcon(url, callback)
+local function PreloadIcon(url, callback, attempt)
     if not url or not url:match("^https?://") then 
         if callback then callback(false) end
         return 
@@ -24,6 +25,7 @@ local function PreloadIcon(url, callback)
     end
     
     -- Создаем и загружаем текстуру
+    attempt = attempt or 1
     texture.Create(url)
         :SetSize(256, 256) -- Оптимальный размер для качества/производительности
         :SetFormat(url:sub(-3) == "jpg" and "jpg" or "png")
@@ -31,6 +33,13 @@ local function PreloadIcon(url, callback)
             preloadedCount = preloadedCount + 1
             if callback then callback(true) end
         end, function()
+            if attempt < 3 then
+                timer.Simple(1, function()
+                    PreloadIcon(url, callback, attempt + 1)
+                end)
+                return
+            end
+
             preloadedCount = preloadedCount + 1
             if callback then callback(false) end
         end)
@@ -46,8 +55,8 @@ local function ProcessPreloadQueue()
     
     isPreloading = true
     
-    -- Загружаем до 10 иконок параллельно для быстрой загрузки
-    local batchSize = math.min(10, #preloadQueue)
+    -- Загружаем меньше параллельно, чтобы не ловить таймауты
+    local batchSize = math.min(3, #preloadQueue)
     for i = 1, batchSize do
         local url = table.remove(preloadQueue, 1)
         if url then
@@ -60,9 +69,9 @@ local function ProcessPreloadQueue()
         end
     end
     
-    -- Продолжаем загрузку следующего batch быстрее
+    -- Продолжаем загрузку следующего batch с небольшой паузой
     if #preloadQueue > 0 then
-        timer.Simple(0.05, ProcessPreloadQueue)
+        timer.Simple(0.2, ProcessPreloadQueue)
     end
 end
 

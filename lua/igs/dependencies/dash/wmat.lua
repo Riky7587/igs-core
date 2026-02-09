@@ -27,6 +27,7 @@ texture.trusted_domains = {
 	"steamusercontent.com",
 	"steamcommunity.com",
 	"githubusercontent.com",
+	"viperrp.ru",
 }
 
 if (not file.IsDir('texture', 'DATA')) then
@@ -135,64 +136,74 @@ function TEXTURE:Download(url, onsuccess, onfailure)
 	else
 		self.Busy = true
 
-		local fetchUrl = url
-		local useProxy = self.Proxy
-		
-		-- Проверяем, является ли домен доверенным
-		if useProxy then
+		local function isTrustedDomain(link)
 			for _, domain in ipairs(texture.trusted_domains) do
-				if url:find(domain, 1, true) then
-					useProxy = false
-					break
+				if link:find(domain, 1, true) then
+					return true
 				end
 			end
+			return false
 		end
-		
-		if useProxy then
-			-- Для прокси weserv.nl нужен URL без протокола
-			local cleanUrl = url:gsub("^https?://", "")
-			fetchUrl = string.format(texture.proxyurl, cleanUrl, self.Width, self.Height, self.Format)
+
+		local function buildFetchUrl(link, useProxy)
+			if not useProxy then return link end
+			local cleanUrl = link:gsub("^https?://", "")
+			return string.format(texture.proxyurl, cleanUrl, self.Width, self.Height, self.Format)
 		end
-		
-		http.Fetch(fetchUrl, function(body, len, headers, code)
-			-- Проверяем успешность загрузки
-			if code ~= 200 then
-				print("[IGS Texture] Failed to load image: " .. url .. " (HTTP " .. code .. ")")
-				if onfailure then
-					onfailure(self, "HTTP " .. code)
+
+		local function fetchWithProxy(useProxy, triedAlternate)
+			local fetchUrl = buildFetchUrl(url, useProxy)
+
+			http.Fetch(fetchUrl, function(body, len, headers, code)
+				if code ~= 200 then
+					if not triedAlternate then
+						return fetchWithProxy(not useProxy, true)
+					end
+
+					print("[IGS Texture] Failed to load image: " .. url .. " (HTTP " .. code .. ")")
+					if onfailure then
+						onfailure(self, "HTTP " .. code)
+					end
+					self.Busy = false
+					return
 				end
+
+				if (self.Cache) then
+					file.Write(self.File, body)
+				end
+
+				local tempfile = 'texture/tmp_' .. os.time() .. '_' .. self:GetUID() .. '.png'
+				file.Write(tempfile, body)
+				self.IMaterial = Material('data/' .. tempfile, 'smooth')
+				file.Delete(tempfile)
+
+				print("[IGS Texture] Successfully loaded: " .. url)
+
+				if onsuccess then
+					onsuccess(self, self.IMaterial)
+				end
+
 				self.Busy = false
-				return
-			end
-			
-			if (self.Cache) then
-				file.Write(self.File, body)
-			end
+			end, function(error)
+				if not triedAlternate then
+					return fetchWithProxy(not useProxy, true)
+				end
 
-			local tempfile = 'texture/tmp_' .. os.time() .. '_' .. self:GetUID() .. '.png'
-			file.Write(tempfile, body)
-			self.IMaterial = Material('data/' .. tempfile, 'smooth')
-			file.Delete(tempfile)
+				print("[IGS Texture] Error loading image: " .. url)
+				print("[IGS Texture] Error details: " .. tostring(error))
 
-			print("[IGS Texture] Successfully loaded: " .. url)
-			
-			if onsuccess then
-				onsuccess(self, self.IMaterial)
-			end
+				self.Error = error
 
-			self.Busy = false
-		end, function(error)
-			print("[IGS Texture] Error loading image: " .. url)
-			print("[IGS Texture] Error details: " .. tostring(error))
-			
-			self.Error = error
+				if onfailure then
+					onfailure(self, self.Error)
+				end
 
-			if onfailure then
-				onfailure(self, self.Error)
-			end
+				self.Busy = false
+			end)
+		end
 
-			self.Busy = false
-		end)
+		local useProxy = self.Proxy and not isTrustedDomain(url)
+		fetchWithProxy(useProxy, false)
 	end
 	return self
 end
