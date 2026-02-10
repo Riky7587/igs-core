@@ -174,3 +174,8 @@ end)
 net.Receive("IGS.UI",function()
 	IGS.UI()
 end)
+
+-- Сервер сообщает, что инвентарь обновился (например, после покупки/выдачи через сайт)
+net.Receive("IGS.InventoryUpdated", function()
+	hook.Run("IGS.InventoryUpdated")
+end)

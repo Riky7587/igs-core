@@ -3,6 +3,7 @@ local function loadTab(activity,sidebar,dat)
 	
 	bg.OnRemove = function()
 		hook.Remove("IGS.PlayerPurchasedItem","UpdateInventoryView")
+		hook.Remove("IGS.InventoryUpdated","UpdateInventoryViewFull")
 	end
 
 	bg.OnOpen = function()
@@ -35,6 +36,21 @@ local function loadTab(activity,sidebar,dat)
 	local function removeFromCanvas(itemPan)
 		if IsValid(itemPan) then
 			itemPan:Remove()
+		end
+	end
+
+	local function setData(newDat)
+		-- Полная перерисовка (например, если инвентарь изменился через сайт/панель)
+		icons:Clear()
+
+		if #newDat == 0 then
+			showEmptyState()
+			return
+		end
+
+		hideEmptyState()
+		for _, v in ipairs(newDat) do
+			icons:AddItem(v.item, v.id)
 		end
 	end
 
@@ -153,14 +169,7 @@ local function loadTab(activity,sidebar,dat)
 		end
 	end
 
-	if #dat == 0 then
-		showEmptyState()
-	else
-		for _, v in ipairs(dat) do
-			-- Добавляем только валидные предметы (null предметы уже очищены на сервере)
-			icons:AddItem(v.item, v.id)
-		end
-	end
+	setData(dat)
 
 	hook.Add("IGS.PlayerPurchasedItem", "UpdateInventoryView", function(_, ITEM, invDbID)
 		-- Не добавляем null предметы в UI
@@ -168,6 +177,13 @@ local function loadTab(activity,sidebar,dat)
 			hideEmptyState()
 			icons:AddItem(ITEM, invDbID)
 		end
+	end)
+
+	hook.Add("IGS.InventoryUpdated", "UpdateInventoryViewFull", function()
+		IGS.GetInventory(function(items)
+			if not IsValid(bg) then return end
+			setData(items)
+		end)
 	end)
 
 	activity:AddTab("Инвентарь", bg, "materials/icons/fa32/cart-arrow-down.png")
