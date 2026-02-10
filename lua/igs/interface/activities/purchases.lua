@@ -28,10 +28,48 @@ hook.Add("IGS.CatchActivities","purchases",function(activity,sidebar)
 		pnl:AddColumn("Предмет")
 		pnl:AddColumn("Куплен",90)
 		pnl:AddColumn("Истечет",90)
+		pnl:AddColumn("Надето",70)
 
 
 		IGS.GetMyPurchases(function(d)
 			if !IsValid(pnl) then return end -- Долго данные получались, фрейм успели закрыть
+
+			local function getEquippedText(purch, ITEM)
+				if ITEM.isnull then return "Да" end
+
+				-- Если покупка с другого сервера — статус надевания неизвестен (он локален для сервера)
+				if purch.server and IGS.SERVERS and IGS.SERVERS:ID() and purch.server ~= IGS.SERVERS:ID() then
+					return "—"
+				end
+
+				if not ITEM:HasReloadns() then
+					return "Да"
+				end
+
+				local cat = ITEM:ReloadnsCategory()
+				local equipped = LocalPlayer():GetIGSVar("igs_reloadns_equipped") or {}
+				return equipped[cat] == ITEM:UID() and "Да" or "Нет"
+			end
+
+			local function updateAllEquipped()
+				if not IsValid(pnl) then return end
+
+				for _,line in ipairs(pnl.lines or {}) do
+					local purch = line._igs_purchase
+					local ITEM  = line._igs_item
+					if purch and ITEM and line.columns and line.columns[5] then
+						line.columns[5]:SetText( getEquippedText(purch, ITEM) )
+					end
+				end
+			end
+
+			local hookid = "IGS.ReloadnsEquippedUpdated.Purchases." .. tostring(pnl)
+			hook.Add("IGS.ReloadnsEquippedUpdated", hookid, function()
+				updateAllEquipped()
+			end)
+			pnl.OnRemove = function()
+				hook.Remove("IGS.ReloadnsEquippedUpdated", hookid)
+			end
 
 			for i,v in ipairs(d) do
 				local sv_name = IGS.ServerName(v.server)
@@ -43,7 +81,8 @@ hook.Add("IGS.CatchActivities","purchases",function(activity,sidebar)
 					multisv and sv_name or #d - i + 1,
 					sName,
 					IGS.TimestampToDate(v.purchase) or "Никогда",
-					IGS.TimestampToDate(v.expire)   or "Никогда"
+					IGS.TimestampToDate(v.expire)   or "Никогда",
+					getEquippedText(v, ITEM)
 				)
 
 				local tip = "Имя сервера: " .. sv_name .. "\nID в системе: " .. v.id .. "\nОригинальное название: " .. v.item
@@ -91,6 +130,9 @@ hook.Add("IGS.CatchActivities","purchases",function(activity,sidebar)
 					m:Open()
 				end
 			end
+
+			-- На случай если netvar пришел чуть позже списка покупок
+			updateAllEquipped()
 		end)
 	end, bg)
 

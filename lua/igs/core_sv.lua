@@ -69,6 +69,10 @@ end
 --[[-------------------------------------------------------------------------
 	Reloadns (надеваемые покупки)
 ---------------------------------------------------------------------------]]
+function IGS.PlayerOwnsPurchase(pl, sItemUID)
+	return pl:GetVar("igs_purchases", {})[sItemUID]
+end
+
 local function normalizeReloadnsTable(t)
 	if not istable(t) then return {} end
 
@@ -91,7 +95,7 @@ local function sanitizeReloadnsEquipped(pl, tEquipped)
 
 	for cat, uid in pairs(tEquipped) do
 		local ITEM = IGS.GetItemByUID(uid)
-		if ITEM.isnull or not ITEM:HasReloadns() or ITEM:ReloadnsCategory() ~= cat or not pl:HasPurchase(uid) then
+		if ITEM.isnull or not ITEM:HasReloadns() or ITEM:ReloadnsCategory() ~= cat or not IGS.PlayerOwnsPurchase(pl, uid) then
 			tEquipped[cat] = nil
 		end
 	end

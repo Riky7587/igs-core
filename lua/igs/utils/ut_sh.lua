@@ -114,7 +114,31 @@ end
 -- Список активных покупок игрока
 -- uid > amount
 function IGS.PlayerPurchases(pl)
-	return CLIENT and (pl:GetIGSVar("igs_purchases") or {}) or pl:GetVar("igs_purchases",{})
+	local purchases = CLIENT and (pl:GetIGSVar("igs_purchases") or {}) or pl:GetVar("igs_purchases",{})
+	if not next(purchases) then return purchases end
+
+	-- Для предметов с :Reloadns(): "активно" только когда надето
+	local equipped = CLIENT
+		and (pl:GetIGSVar("igs_reloadns_equipped") or {})
+		or (IGS.GetReloadnsEquipped and IGS.GetReloadnsEquipped(pl) or {})
+
+	if not next(equipped) then return purchases end
+
+	local filtered = purchases
+	for uid in pairs(purchases) do
+		local ITEM = IGS.GetItemByUID(uid)
+		if not ITEM.isnull and ITEM:HasReloadns() then
+			local cat = ITEM:ReloadnsCategory()
+			if equipped[cat] ~= uid then
+				if filtered == purchases then
+					filtered = table.Copy(purchases)
+				end
+				filtered[uid] = nil
+			end
+		end
+	end
+
+	return filtered
 end
 
 -- Сумма в донат валюте всех операций пополнения счета (включая купоны и выдачу денег администратором)

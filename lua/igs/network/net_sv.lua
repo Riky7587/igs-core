@@ -321,7 +321,7 @@ net_ReceiveProtected("IGS.ToggleReloadns", function(pl)
 	local ok, msg
 	if ITEM.isnull or not ITEM:HasReloadns() then
 		ok, msg = false, "Этот предмет нельзя надевать/снимать"
-	elseif not pl:HasPurchase(uid) then
+	elseif not IGS.PlayerOwnsPurchase(pl, uid) then
 		ok, msg = false, "У вас нет активной покупки этого предмета"
 	else
 		local cat = ITEM:ReloadnsCategory()
