@@ -312,6 +312,50 @@ end)
 
 
 --[[-------------------------------------------------------------------------
+	Reloadns (надеваемые покупки)
+---------------------------------------------------------------------------]]
+net_ReceiveProtected("IGS.ToggleReloadns", function(pl)
+	local uid = net.ReadString()
+	local ITEM = IGS.GetItemByUID(uid)
+
+	local ok, msg
+	if ITEM.isnull or not ITEM:HasReloadns() then
+		ok, msg = false, "Этот предмет нельзя надевать/снимать"
+	elseif not pl:HasPurchase(uid) then
+		ok, msg = false, "У вас нет активной покупки этого предмета"
+	else
+		local cat = ITEM:ReloadnsCategory()
+		local equipped = table.Copy(IGS.GetReloadnsEquipped(pl) or {})
+		local prev_uid = equipped[cat]
+
+		if prev_uid == uid then
+			equipped[cat] = nil
+			ok, msg = true, "Снято"
+			hook.Run("IGS.ReloadnsUnequipped", pl, ITEM, cat)
+		else
+			if prev_uid then
+				local PREV = IGS.GetItemByUID(prev_uid)
+				if not PREV.isnull then
+					hook.Run("IGS.ReloadnsUnequipped", pl, PREV, cat)
+				end
+			end
+
+			equipped[cat] = uid
+			ok, msg = true, "Надето"
+			hook.Run("IGS.ReloadnsEquipped", pl, ITEM, cat)
+		end
+
+		IGS.SetReloadnsEquipped(pl, equipped)
+	end
+
+	net.Start("IGS.ToggleReloadns")
+		net.WriteBool(ok)
+		net.WriteIGSMessage(msg)
+	net.Send(pl)
+end)
+
+
+--[[-------------------------------------------------------------------------
 	ИНВЕНТАРЬ
 ---------------------------------------------------------------------------]]
 local function IGS_GetInventory(pl,cb)

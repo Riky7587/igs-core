@@ -36,6 +36,33 @@ end):Read(function()
 end):SetLocalPlayer():SetHook("IGS.PlayerPurchasesLoaded")
 
 
+-- Надетые предметы Reloadns (cat -> uid)
+IGS.nw.Register("igs_reloadns_equipped")
+	:Write(function(t)
+		local n = 0
+		for _ in pairs(t or {}) do n = n + 1 end
+
+		net.WriteUInt(n, 8) -- 255
+		for cat, uid in pairs(t or {}) do
+			net.WriteUInt(tonumber(cat) or 1, 8)
+			net.WriteString(tostring(uid or ""))
+		end
+	end)
+	:Read(function()
+		local res = {}
+		for _ = 1, net.ReadUInt(8) do
+			local cat = net.ReadUInt(8)
+			local uid = net.ReadString()
+			if uid ~= "" then
+				res[cat] = uid
+			end
+		end
+		return res
+	end)
+	:SetLocalPlayer()
+	:SetHook("IGS.ReloadnsEquippedUpdated")
+
+
 -- https://img.qweqwe.ovh/1492003125937.png
 IGS.nw.Register("igs_settings")
 	:Write(function(t)

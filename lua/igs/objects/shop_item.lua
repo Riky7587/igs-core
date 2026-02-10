@@ -147,6 +147,30 @@ function STORE_ITEM:IsNetworked()
 	return self.networked
 end
 
+--[[-------------------------------------------------------------------------
+	Reloadns (надеваемые/снимаемые покупки)
+
+	:Reloadns(category)
+	category = номер "слота/категории" (1..255). В одной категории может быть
+	надет только один предмет; надевание другого снимет предыдущий.
+---------------------------------------------------------------------------]]
+function STORE_ITEM:Reloadns(iCategory)
+	iCategory = tonumber(iCategory) or 1
+	iCategory = math.floor(iCategory)
+	if iCategory < 1 then iCategory = 1 end
+	if iCategory > 255 then iCategory = 255 end
+
+	return set(self, "reloadns", iCategory)
+end
+
+function STORE_ITEM:ReloadnsCategory()
+	return self.reloadns
+end
+
+function STORE_ITEM:HasReloadns()
+	return self.reloadns ~= nil
+end
+
 -- Баннер товара. Будет отображен под информацией о товаре. Рекомендуемый размер 1000х400
 function STORE_ITEM:SetImage(sUrl)
 	return set(self,"image_url",sUrl)
