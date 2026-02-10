@@ -69,6 +69,21 @@ function PLAYER:HasPurchase(sUID)
 	return IGS.PlayerPurchases(self)[sUID]
 end
 
+-- Надет ли предмет Reloadns (equipped-state), не влияет на владение покупкой
+function PLAYER:HasPurchaseEquipped(sUID)
+	local ITEM = IGS.GetItemByUID(sUID)
+	if ITEM.isnull or not ITEM:HasReloadns() then return false end
+
+	local cat = ITEM:ReloadnsCategory()
+	if CLIENT then
+		local equipped = self:GetIGSVar("igs_reloadns_equipped") or {}
+		return equipped[cat] == sUID
+	else
+		local equipped = IGS.GetReloadnsEquipped and IGS.GetReloadnsEquipped(self) or {}
+		return equipped[cat] == sUID
+	end
+end
+
 -- true, если человек имеет хоть один итем из списка, nil, если итем не отслеживается, false, если нет права. Начало юзаться для упрощения кода модулей
 function IGS.PlayerHasOneOf(pl,tItems)
 	if !tItems then return end
@@ -114,31 +129,10 @@ end
 -- Список активных покупок игрока
 -- uid > amount
 function IGS.PlayerPurchases(pl)
-	local purchases = CLIENT and (pl:GetIGSVar("igs_purchases") or {}) or pl:GetVar("igs_purchases",{})
-	if not next(purchases) then return purchases end
-
-	-- Для предметов с :Reloadns(): "активно" только когда надето
-	local equipped = CLIENT
-		and (pl:GetIGSVar("igs_reloadns_equipped") or {})
-		or (IGS.GetReloadnsEquipped and IGS.GetReloadnsEquipped(pl) or {})
-
-	if not next(equipped) then return purchases end
-
-	local filtered = purchases
-	for uid in pairs(purchases) do
-		local ITEM = IGS.GetItemByUID(uid)
-		if not ITEM.isnull and ITEM:HasReloadns() then
-			local cat = ITEM:ReloadnsCategory()
-			if equipped[cat] ~= uid then
-				if filtered == purchases then
-					filtered = table.Copy(purchases)
-				end
-				filtered[uid] = nil
-			end
-		end
-	end
-
-	return filtered
+	-- ВАЖНО: как в PointShop — владение покупкой != надето.
+	-- Тут возвращаем именно владение (uid -> amount). Состояние "надето" отдельно:
+	-- PLAYER:HasPurchaseEquipped(uid)
+	return CLIENT and (pl:GetIGSVar("igs_purchases") or {}) or pl:GetVar("igs_purchases",{})
 end
 
 -- Сумма в донат валюте всех операций пополнения счета (включая купоны и выдачу денег администратором)

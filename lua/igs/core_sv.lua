@@ -127,7 +127,18 @@ end
 function IGS.LoadReloadnsEquipped(pl)
 	local raw = pl:GetPData("igs_reloadns_equipped")
 	local t = raw and util.JSONToTable(raw) or {}
-	return IGS.SetReloadnsEquipped(pl, t, true)
+	local equipped = IGS.SetReloadnsEquipped(pl, t, true)
+
+	-- Применяем эффекты как в PointShop: владение отдельно, а эффекты — только у надетых
+	for cat, uid in pairs(equipped) do
+		local ITEM = IGS.GetItemByUID(uid)
+		if not ITEM.isnull and ITEM:HasReloadns() and ITEM:ReloadnsCategory() == cat then
+			ITEM:OnEquip(pl)
+			hook.Run("IGS.ReloadnsEquipped", pl, ITEM, cat)
+		end
+	end
+
+	return equipped
 end
 
 hook.Add("IGS.PlayerPurchasesLoaded", "IGS.LoadReloadnsEquipped", function(pl)

@@ -243,6 +243,15 @@ function STORE_ITEM:SetOnActivate(fCallback)
 	return SERVER and set(self,"onactivate",fCallback) or self
 end
 
+-- Аналог PointShop: эффекты "надето/снято" (для предметов с :Reloadns())
+function STORE_ITEM:SetOnEquip(fCallback)
+	return SERVER and set(self,"onequip",fCallback) or self
+end
+
+function STORE_ITEM:SetOnHolster(fCallback)
+	return SERVER and set(self,"onholster",fCallback) or self
+end
+
 -- Если fChecker вернет false, то выполнится installer
 function STORE_ITEM:SetValidator(fChecker)
 	return SERVER and set(self,"validator",fChecker) or self
@@ -260,6 +269,18 @@ if SERVER then
 
 		if self.onactivate then
 			self.onactivate(pl)
+		end
+	end
+
+	function STORE_ITEM:OnEquip(pl)
+		if self.onequip then
+			self.onequip(pl)
+		end
+	end
+
+	function STORE_ITEM:OnHolster(pl)
+		if self.onholster then
+			self.onholster(pl)
 		end
 	end
 

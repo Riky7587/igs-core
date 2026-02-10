@@ -331,17 +331,20 @@ net_ReceiveProtected("IGS.ToggleReloadns", function(pl)
 		if prev_uid == uid then
 			equipped[cat] = nil
 			ok, msg = true, "Снято"
+			ITEM:OnHolster(pl)
 			hook.Run("IGS.ReloadnsUnequipped", pl, ITEM, cat)
 		else
 			if prev_uid then
 				local PREV = IGS.GetItemByUID(prev_uid)
 				if not PREV.isnull then
+					PREV:OnHolster(pl)
 					hook.Run("IGS.ReloadnsUnequipped", pl, PREV, cat)
 				end
 			end
 
 			equipped[cat] = uid
 			ok, msg = true, "Надето"
+			ITEM:OnEquip(pl)
 			hook.Run("IGS.ReloadnsEquipped", pl, ITEM, cat)
 		end
 
