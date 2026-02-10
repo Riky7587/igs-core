@@ -1,5 +1,6 @@
 util.AddNetworkString("IGS.PaymentStatusUpdated")
 util.AddNetworkString("IGS.UI")
+util.AddNetworkString("IGS.InventoryUpdated")
 -- Остальные внутри net_ReceiveProtected
 
 

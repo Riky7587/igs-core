@@ -89,6 +89,22 @@ local function syncBalance(pl)
 		if not pl.igs_balance_loaded then return end
 		if not diff or diff == 0 then return end
 
+		-- Если баланс изменился (в т.ч. при покупках на сайте), то перечитываем покупки/инвентарь
+		-- Иначе они обновятся только при перезаходе (PlayerInitialSpawn)
+		timer.Simple(1, function()
+			if not IsValid(pl) then return end
+
+			IGS.LoadPlayerPurchases(pl)
+
+			if IGS.C.Inv_Enabled then
+				IGS.LoadInventory(pl, function()
+					if not IsValid(pl) then return end
+					net.Start("IGS.InventoryUpdated")
+					net.Send(pl)
+				end)
+			end
+		end)
+
 		if diff > 0 then
 			hook.Run("IGS.PaymentStatusUpdated", pl, {
 				method = "pay",
@@ -142,6 +158,16 @@ hook.Add("IGS.PaymentStatusUpdated","NoRejoiningCharge",function(pl,dat)
 			IGS.Notify(pl, "Спасибо вам за пополнение счета. Вы прелесть :3")
 			hook.Run("IGS.PlayerDonate", pl, diff, new_bal_)
 			suggestSpent(pl, new_bal_)
+
+			-- После внешней оплаты сразу перечитываем покупки/инвентарь
+			IGS.LoadPlayerPurchases(pl)
+			if IGS.C.Inv_Enabled then
+				IGS.LoadInventory(pl, function()
+					if not IsValid(pl) then return end
+					net.Start("IGS.InventoryUpdated")
+					net.Send(pl)
+				end)
+			end
 		end, true) -- updateBalance with bGiveBonuses
 
 	end) -- timer 1
