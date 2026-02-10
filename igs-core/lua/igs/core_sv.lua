@@ -28,10 +28,6 @@ function IGS.LoadPlayerPurchases(pl,cb)
 		if #dat == 0 then
 			hook.Run("IGS.PlayerPurchasesLoaded",pl)
 			pl:SetIGSVar("igs_purchases", {}) -- для хука. Ниже описано
-			pl:SetVar("igs_reloadns_equipped", {})
-			IGS.nw.WaitForPlayer(pl, function()
-				pl:SetIGSVar("igs_reloadns_equipped", {})
-			end)
 			return
 		end
 
@@ -64,87 +60,6 @@ function IGS.LoadPlayerPurchases(pl,cb)
 		if cb then cb(purchases) end
 	end)
 end
-
-
---[[-------------------------------------------------------------------------
-	Reloadns (надеваемые покупки)
----------------------------------------------------------------------------]]
-function IGS.PlayerOwnsPurchase(pl, sItemUID)
-	return pl:GetVar("igs_purchases", {})[sItemUID]
-end
-
-local function normalizeReloadnsTable(t)
-	if not istable(t) then return {} end
-
-	local res = {}
-	for k,v in pairs(t) do
-		local cat = tonumber(k)
-		local uid = tostring(v or "")
-		if cat and uid ~= "" then
-			cat = math.floor(cat)
-			if cat >= 1 and cat <= 255 then
-				res[cat] = uid
-			end
-		end
-	end
-	return res
-end
-
-local function sanitizeReloadnsEquipped(pl, tEquipped)
-	tEquipped = normalizeReloadnsTable(tEquipped)
-
-	for cat, uid in pairs(tEquipped) do
-		local ITEM = IGS.GetItemByUID(uid)
-		if ITEM.isnull or not ITEM:HasReloadns() or ITEM:ReloadnsCategory() ~= cat or not IGS.PlayerOwnsPurchase(pl, uid) then
-			tEquipped[cat] = nil
-		end
-	end
-
-	return tEquipped
-end
-
-function IGS.GetReloadnsEquipped(pl)
-	return pl:GetVar("igs_reloadns_equipped", {})
-end
-
-function IGS.SetReloadnsEquipped(pl, tEquipped, bDontPersist)
-	tEquipped = sanitizeReloadnsEquipped(pl, tEquipped)
-
-	pl:SetVar("igs_reloadns_equipped", tEquipped)
-	IGS.nw.WaitForPlayer(pl, function()
-		if IsValid(pl) then
-			pl:SetIGSVar("igs_reloadns_equipped", tEquipped)
-		end
-	end)
-
-	if not bDontPersist then
-		pl:SetPData("igs_reloadns_equipped", util.TableToJSON(tEquipped))
-	end
-
-	return tEquipped
-end
-
-function IGS.LoadReloadnsEquipped(pl)
-	local raw = pl:GetPData("igs_reloadns_equipped")
-	local t = raw and util.JSONToTable(raw) or {}
-	local equipped = IGS.SetReloadnsEquipped(pl, t, true)
-
-	-- Применяем эффекты как в PointShop: владение отдельно, а эффекты — только у надетых
-	for cat, uid in pairs(equipped) do
-		local ITEM = IGS.GetItemByUID(uid)
-		if not ITEM.isnull and ITEM:HasReloadns() and ITEM:ReloadnsCategory() == cat then
-			ITEM:OnEquip(pl)
-			hook.Run("IGS.ReloadnsEquipped", pl, ITEM, cat)
-		end
-	end
-
-	return equipped
-end
-
-hook.Add("IGS.PlayerPurchasesLoaded", "IGS.LoadReloadnsEquipped", function(pl)
-	if not IsValid(pl) then return end
-	IGS.LoadReloadnsEquipped(pl)
-end)
 
 -- Выдает покупку. Без сохранения
 function IGS.GivePurchase(pl, sItemUID)

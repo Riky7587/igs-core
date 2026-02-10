@@ -147,30 +147,6 @@ function STORE_ITEM:IsNetworked()
 	return self.networked
 end
 
---[[-------------------------------------------------------------------------
-	Reloadns (надеваемые/снимаемые покупки)
-
-	:Reloadns(category)
-	category = номер "слота/категории" (1..255). В одной категории может быть
-	надет только один предмет; надевание другого снимет предыдущий.
----------------------------------------------------------------------------]]
-function STORE_ITEM:Reloadns(iCategory)
-	iCategory = tonumber(iCategory) or 1
-	iCategory = math.floor(iCategory)
-	if iCategory < 1 then iCategory = 1 end
-	if iCategory > 255 then iCategory = 255 end
-
-	return set(self, "reloadns", iCategory)
-end
-
-function STORE_ITEM:ReloadnsCategory()
-	return self.reloadns
-end
-
-function STORE_ITEM:HasReloadns()
-	return self.reloadns ~= nil
-end
-
 -- Баннер товара. Будет отображен под информацией о товаре. Рекомендуемый размер 1000х400
 function STORE_ITEM:SetImage(sUrl)
 	return set(self,"image_url",sUrl)
@@ -243,15 +219,6 @@ function STORE_ITEM:SetOnActivate(fCallback)
 	return SERVER and set(self,"onactivate",fCallback) or self
 end
 
--- Аналог PointShop: эффекты "надето/снято" (для предметов с :Reloadns())
-function STORE_ITEM:SetOnEquip(fCallback)
-	return SERVER and set(self,"onequip",fCallback) or self
-end
-
-function STORE_ITEM:SetOnHolster(fCallback)
-	return SERVER and set(self,"onholster",fCallback) or self
-end
-
 -- Если fChecker вернет false, то выполнится installer
 function STORE_ITEM:SetValidator(fChecker)
 	return SERVER and set(self,"validator",fChecker) or self
@@ -269,18 +236,6 @@ if SERVER then
 
 		if self.onactivate then
 			self.onactivate(pl)
-		end
-	end
-
-	function STORE_ITEM:OnEquip(pl)
-		if self.onequip then
-			self.onequip(pl)
-		end
-	end
-
-	function STORE_ITEM:OnHolster(pl)
-		if self.onholster then
-			self.onholster(pl)
 		end
 	end
 

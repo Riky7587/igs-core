@@ -116,24 +116,6 @@ function IGS.GetMyPurchases(fCallback)
 	end)
 end
 
--- Надеть/снять покупку (только для предметов с :Reloadns())
-function IGS.ToggleReloadns(sItemUID, callback)
-	net.Start("IGS.ToggleReloadns")
-		net.WriteString(sItemUID)
-	net.SendToServer()
-
-	net.Receive("IGS.ToggleReloadns", function()
-		local ok = net.ReadBool()
-		local msg = net.ReadIGSMessage()
-		if msg then
-			IGS.ShowNotify(msg, ok and "IGS" or "Ошибка")
-		end
-		if callback then
-			callback(ok, msg)
-		end
-	end)
-end
-
 
 
 

@@ -75,7 +75,6 @@ function PANEL:AddLine(...)
 				line.columns[i] = uigs.Create("DButton", function(row) -- Было Panel
 					row:SetText(val)
 					row.DoClick = function() if line.DoClick then line.DoClick(row) end end
-					row.DoRightClick = function() if line.DoRightClick then line.DoRightClick(row) end end
 					row:SetCursor("arrow")
 					row:SetTall( line:GetTall() )
 					-- row:SetPos(self.columns[i]:GetPos())
