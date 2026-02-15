@@ -25,15 +25,8 @@ function PANEL:IsActive()
 	return self.active
 end
 
+-- Оптимизация FPS: blur убран с кнопок (много кнопок = просадка)
 function PANEL:Paint(w,h)
-	-- Размытие фона кнопки
-	if RNDX and Mantle and Mantle.ui.convar.blur then
-		RNDX().Rect(0, 0, w, h)
-			:Rad(4)
-			:Blur(0.8)
-		:Draw()
-	end
-	
 	if self.active then
 		-- Особый стиль для кнопок категорий
 		if self.isCategory then

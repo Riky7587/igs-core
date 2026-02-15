@@ -90,27 +90,9 @@ function IGS.WIN.Item(uid)
 
 	uigs.Create("igs_iteminfo", function(p)
 
-		--[[-------------------------------------------------------------------------
-			Очень не красивый, но очень полезный код
-			Заставляет ползунок помигать для заметности
-		---------------------------------------------------------------------------]]
+		-- Счётчик просмотров (мигание скроллбара убрано - вызывало просадку FPS из-за InvalidateLayout каждый кадр)
 		local viewed = tonumber( bib.get("igs:items_viewed",0) )
 		bib.set("igs:items_viewed",viewed + 1)
-
-		-- Если мигали 3+ раза, то больше не надо
-		if viewed < 3 then
-			local oldThink = p.scroll.scrollBar.Think
-			timer.Simple(.5,function() -- 0.5 = время, которое скролл будет мигать
-				if !IsValid(p) then return end
-
-				p.scroll.scrollBar.Think = oldThink
-			end)
-
-			p.scroll.scrollBar.Think = function() --              \/ скорость мигания
-				p.scroll.scrollBar.addWidth = (math.sin( CurTime() * 20 ) + 1) / 2 * 8 -- 8 лимит ширины скролла
-				p.scroll.scrollBar:InvalidateLayout()
-			end
-		end
 		-----------------------------------------------------------------------------
 
 

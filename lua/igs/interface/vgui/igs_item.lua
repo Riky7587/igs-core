@@ -30,16 +30,9 @@ local function getBottomText(ITEM, bShowDiscounted)
 	end
 end
 
+-- Оптимизация FPS: blur убран из DrawRoundedPanel для иконок (много вызовов = просадка)
 local function DrawRoundedPanel(x, y, w, h, radius, outline_col, fill_col, outline_thick)
 	if RNDX then
-		-- Размытие фона если включено в Mantle
-		if Mantle and Mantle.ui.convar.blur then
-			RNDX().Rect(x, y, w, h)
-				:Rad(radius)
-				:Blur(1.0)
-			:Draw()
-		end
-		
 		RNDX.Draw(radius, x, y, w, h, fill_col)
 		RNDX.DrawOutlined(radius, x, y, w, h, outline_col, outline_thick or 1)
 		return
@@ -301,7 +294,7 @@ function PANEL:SetIcon(sIco,bIsModel) -- :SetIcon() для сброса
 			mdl:SetFOV(30)
 			mdl:SetCamPos(Vector(size, size, size))
 			mdl:SetLookAt((mn + mx) * 0.5)
-			mdl.LayoutEntity = function() return false end
+			mdl.LayoutEntity = function() return false end -- отключаем анимацию для экономии FPS
 		end, self.iconbg)
 
 		-- НЕ моделька (Ссылка на иконку)
@@ -324,6 +317,31 @@ end
 
 function PANEL:DoClick()
 	IGS.WIN.Item(self.item:UID()) -- Обязательно предварительно SetItem
+end
+
+-- Оптимизация FPS: скрываем DModelPanel когда карточка вне видимой области скролла
+function PANEL:Think()
+	if not self.icon or self.icon.ClassName ~= "DModelPanel" then return end
+	local scroll = self
+	while IsValid(scroll) and scroll.yOffset == nil do
+		scroll = scroll:GetParent()
+	end
+	if not IsValid(scroll) then
+		self.icon:SetVisible(true)
+		return
+	end
+	if not self._nextVisCheck or CurTime() >= self._nextVisCheck then
+		self._nextVisCheck = CurTime() + 0.1
+		local itemY = select(2, self:GetPos())
+		local p = self:GetParent()
+		while IsValid(p) and p ~= scroll do
+			itemY = itemY + select(2, p:GetPos())
+			p = p:GetParent()
+		end
+		-- itemY = позиция в viewport (учитывая canvas.y = -yOffset)
+		local vis = (itemY >= 0) and (itemY + self:GetTall() <= scroll:GetTall())
+		self.icon:SetVisible(vis)
+	end
 end
 
 function PANEL:PerformLayout()
@@ -385,17 +403,9 @@ function PANEL:SetTitleColor(c)
 end
 
 
+-- Оптимизация FPS: blur отключен для карточек товаров (много элементов = сильная просадка)
 function PANEL:Paint(w,h)
-	-- Размытие фона карточки
-	if RNDX and Mantle and Mantle.ui.convar.blur then
-		RNDX().Rect(0, 0, w, h)
-			:Rad(6)
-			:Blur(1.2)
-		:Draw()
-	end
-	
 	DrawRoundedPanel(0, 0, w, h, 6, IGS.col.HARD_LINE, CARD_BG)
-
 	return true
 end
 

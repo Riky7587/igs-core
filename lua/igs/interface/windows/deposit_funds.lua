@@ -42,25 +42,23 @@ function IGS.WIN.Deposit(iRealSum)
 		self.real_m:SetPos(10,50)
 		self.real_m:SetSize(cd and 450 - 10 - 10 or 180,30)
 		self.real_m:SetNumeric(true)
-		self.real_m.OnChange = function(s)
-			if cd then return end
-			self.curr_m:SetValue(IGS.PriceInCurrency( niceSum(s:GetValue(),0) )) -- бля
-		end
-		self.real_m.Think = function()
+		-- Оптимизация FPS: обновление через OnChange вместо Think (не каждый кадр)
+		local function UpdatePurchaseButton()
+			if not IsValid(self.purchase) then return end
 			local rub = tonumber(self.real_m:GetValue())
 			if cd then
-				self.purchase:SetText(
-					"Пополнить счет на " .. niceSum(rub,0) .. " руб"
-				)
+				self.purchase:SetText("Пополнить счет на " .. niceSum(rub,0) .. " руб")
 			else
-				local igs = tonumber(self.curr_m:GetValue())
-				self.purchase:SetText(
-					"Пополнить на " .. IGS.SignPrice( niceSum(igs,0) ) ..
-					" за " .. niceSum(rub,0) .. " руб"
-				)
+				local igs = IsValid(self.curr_m) and tonumber(self.curr_m:GetValue()) or 0
+				self.purchase:SetText("Пополнить на " .. IGS.SignPrice(niceSum(igs,0)) .. " за " .. niceSum(rub,0) .. " руб")
 			end
-
 			self.purchase:SetActive(rub and rub > 0)
+		end
+		self.real_m.OnChange = function(s)
+			if not cd then
+				self.curr_m:SetValue(IGS.PriceInCurrency( niceSum(s:GetValue(),0) ))
+			end
+			UpdatePurchaseButton()
 		end
 
 		--[[-------------------------------------
@@ -127,7 +125,8 @@ function IGS.WIN.Deposit(iRealSum)
 			self.curr_m:SetSize(self.real_m:GetWide(),self.real_m:GetTall())
 			self.curr_m:SetNumeric(true)
 			self.curr_m.OnChange = function(s)
-				self.real_m:SetValue(IGS.RealPrice( niceSum(s:GetValue(),0) )) -- тоже бля
+				self.real_m:SetValue(IGS.RealPrice( niceSum(s:GetValue(),0) ))
+				UpdatePurchaseButton()
 			end
 		end
 

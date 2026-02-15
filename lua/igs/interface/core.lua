@@ -103,17 +103,8 @@ local containerWidth = 150 + 100 + 110 -- баланс + купон + попол
 container:SetPos(mf:GetWide() - 20 - containerWidth, 0)
 container:SetSize(containerWidth, 23)
 
--- Общая обводка для всего блока
+-- Общая обводка для всего блока. Оптимизация FPS: blur убран (просадка при открытом меню)
 container.Paint = function(s, w, h)
-    -- Размытие фона
-    if RNDX and Mantle and Mantle.ui.convar.blur then
-        RNDX().Rect(0, 0, w, h)
-            :Rad(4)
-            :Blur(0.8)
-        :Draw()
-    end
-    
-    -- Фон и обводка
     draw.RoundedBox(4, 0, 0, w, h, IGS.col.HIGHLIGHTING) -- outline
     draw.RoundedBox(4, 1, 1, w - 2, h - 2, IGS.col.PASSIVE_SELECTIONS) -- bg
 end
@@ -145,9 +136,13 @@ end
 
 balancePanel:UPDBalance()
 
+-- Оптимизация: проверка баланса по таймеру вместо каждого кадра (снижает нагрузку на FPS)
 balancePanel.Think = function(s)
-    if s.bal ~= LocalPlayer():IGSFunds() then
-        s:UPDBalance()
+    if not s._nextBalanceCheck or CurTime() >= s._nextBalanceCheck then
+        s._nextBalanceCheck = CurTime() + 0.5
+        if s.bal ~= LocalPlayer():IGSFunds() then
+            s:UPDBalance()
+        end
     end
 end
 
@@ -209,14 +204,7 @@ add.DoClick = dep
 		surface.DrawLine(0,0,0,h) -- линия слева
 	end
 	mf.sidebar.header.Paint = function(_,w,h)
-		-- Размытие header'а sidebar'а
-		if RNDX and Mantle and Mantle.ui.convar.blur then
-			RNDX().Rect(0, 0, w, h)
-				:Rad(0)
-				:Blur(1.2)
-			:Draw()
-		end
-		
+		-- Оптимизация FPS: blur убран с header sidebar
 		draw.RoundedBox(0,0,0,w,h,IGS.col.FRAME_HEADER)
 
 		-- Убрана линия снизу header'а

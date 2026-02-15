@@ -46,28 +46,11 @@ function PANEL:Paint(w,h)
 		surface.SetMaterial( self:GetTexture() )
 		surface.DrawTexturedRect(0,0,w,h)
 	elseif self.Rendering then
-		-- Показываем placeholder во время загрузки
+		-- Placeholder при загрузке. Оптимизация: простая статичная иконка вместо анимации (меньше нагрузка на FPS)
 		draw.RoundedBox(0, 0, 0, w, h, Color(50, 50, 50, 100))
-		
-		-- Анимированная иконка загрузки
-		local time = CurTime() * 2
-		local angle = time % 360
-		
 		local cx, cy = w / 2, h / 2
-		local radius = math.min(w, h) / 4
-		
-		for i = 0, 7 do
-			local a = math.rad(angle + i * 45)
-			local alpha = 255 - (i * 30)
-			local size = radius / 3
-			
-			surface.SetDrawColor(200, 200, 200, alpha)
-			surface.DrawRect(
-				cx + math.cos(a) * radius - size / 2,
-				cy + math.sin(a) * radius - size / 2,
-				size, size
-			)
-		end
+		local r = math.min(w, h) / 6
+		draw.RoundedBox(r, cx - r, cy - r, r * 2, r * 2, Color(100, 100, 100, 150))
 	end
 end
 
